@@ -8,18 +8,17 @@ import com.test.neoris.controller.response.UsuarioResponse;
 import com.test.neoris.entity.Telefono;
 import com.test.neoris.entity.Usuario;
 import com.test.neoris.repository.UsuarioRepository;
-import com.test.neoris.security.config.JwtService;
+import com.test.neoris.security.config.JwtProvider;
 import com.test.neoris.service.UsuarioService;
 import com.test.neoris.util.Constantes;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +28,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -44,16 +46,15 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Autowired
     Constantes constantes;
-    
-    @Autowired
-    private PasswordEncoder encoder; 
-
 
     @Autowired
-    private JwtService jwtService;
+    private PasswordEncoder encoder;
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    JwtProvider jwtProvider;
 
     @Override
     public ResponseEntity<Response> registro(UsuarioRequest request) {
@@ -65,6 +66,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             Set<ConstraintViolation<UsuarioRequest>> constraintViolations = validator.validate(request);
             if (constraintViolations.iterator().hasNext()) {
                 res.setMensaje(constraintViolations.iterator().next().getMessage());
+                res.setUsuario(null);
                 return new ResponseEntity<>(res, HttpStatus.BAD_REQUEST);
             }
 
@@ -72,40 +74,45 @@ public class UsuarioServiceImpl implements UsuarioService {
                 res.setMensaje(constantes.ERROREMAIL);
                 return new ResponseEntity<>(res, HttpStatus.BAD_REQUEST);
             }
-            
+
             Usuario userEntity = new Usuario();
             List<Telefono> phone = new ArrayList<>();
-            
+
             userEntity.setId(UUID.randomUUID().toString());
             userEntity.setNombre(request.getName());
             userEntity.setEmail(request.getEmail());
             userEntity.setPassword(encoder.encode(request.getPassword()));
-            for(TelefonoRequest tel : request.getPhones()){
+            for (TelefonoRequest tel : request.getPhones()) {
                 Telefono entityphone = new Telefono();
                 entityphone = mapper.convertValue(tel, Telefono.class);
+                entityphone.setUsuario(userEntity);
                 phone.add(entityphone);
             }
             userEntity.setPhones(phone);
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-            if (authentication.isAuthenticated()) {
-                token = jwtService.generateToken(request.getEmail());
-            } else {
-                res.setMensaje(constantes.ERRORNOTAUTHORIZED);
-                return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
-            }
+            
             userEntity.setLastLogin(new Date());
             userEntity.setIsactive(true);
+            userEntity = repo.save(userEntity);
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            token = jwtProvider.generateToken(authentication);
+            userEntity.setToken(token);
             userEntity = repo.save(userEntity);
             UsuarioResponse userRes = new UsuarioResponse();
             userRes = mapper.convertValue(userEntity, UsuarioResponse.class);
             res.setUsuario(userRes);
-        } catch (Exception ex) {
+        } catch (IllegalArgumentException | AuthenticationException ex) {
             log.error(constantes.ERROR, ex);
             res.setMensaje(ex.getMessage());
             res.setUsuario(null);
             return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(res, HttpStatus.CREATED);
+    }
+
+    @Override
+    public Optional<Usuario> usuario(String email) {
+        return repo.findByEmail(email);
     }
 
 }

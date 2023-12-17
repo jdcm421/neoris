@@ -1,35 +1,57 @@
 package com.test.neoris.security;
 
-import com.test.neoris.security.config.AuthFilter;
-import com.test.neoris.service.impl.UserInfoService;
+import com.test.neoris.security.config.JwtEntryPoint;
+import com.test.neoris.security.config.JwtTokenFilter;
+import com.test.neoris.service.impl.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
-public class SecurityConfig {
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
     
     @Autowired
-    private AuthFilter authFilter; 
-  
+    UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    JwtEntryPoint jwtEntryPoint;
+
     @Bean
-    public UserDetailsService userDetailsService(){
-        return new UserInfoService();
+    public JwtTokenFilter jwtTokenFilter() {
+        return new JwtTokenFilter();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+    }
+
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+    @Override
+    protected AuthenticationManager authenticationManager() throws Exception {
+        return super.authenticationManager();
     }
     
     private static final String[] AUTHORIZADO = {
@@ -37,40 +59,19 @@ public class SecurityConfig {
         "/v2/api-docs", "/swagger-resources", "/swagger-resources/**", "/configuration/ui",
         "/configuration/security", "/swagger-ui.html", "/webjars/**",
         // -- Swagger UI v3 (OpenAPI)
-        "/v3/api-docs/**", "/swagger-ui/**","/api/user/registro"
+        "/v3/api-docs/**", "/swagger-ui/**","/user/registro"
     };
-    
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception { 
-        return http.cors().and().csrf().disable() 
-                .authorizeHttpRequests() 
-                .requestMatchers(AUTHORIZADO).permitAll() 
-                .and() 
-                .authorizeHttpRequests().anyRequest().authenticated() 
-                .and() 
-                .sessionManagement() 
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
-                .and() 
-                .authenticationProvider(authenticationProvider()) 
-                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class) 
-                .build(); 
-    } 
-  
-    // Password Encoding 
-    @Bean
-    public PasswordEncoder passwordEncoder() { 
-        return new BCryptPasswordEncoder(); 
-    } 
-  
-    @Bean
-    public AuthenticationProvider authenticationProvider() { 
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(); 
-        authenticationProvider.setUserDetailsService(userDetailsService()); 
-        authenticationProvider.setPasswordEncoder(passwordEncoder()); 
-        return authenticationProvider; 
-    } 
-  
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception { 
-        return config.getAuthenticationManager(); 
-    } 
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.cors().and().csrf().disable()
+                .authorizeRequests()
+                .antMatchers(AUTHORIZADO).permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .exceptionHandling().authenticationEntryPoint(jwtEntryPoint)
+                .and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        http.addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+    }
 }

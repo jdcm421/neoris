@@ -12,5 +12,5 @@ public class Response {
     private String mensaje = null;
     
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private UsuarioResponse usuario = new UsuarioResponse();
+    private UsuarioResponse usuario = null;
 }

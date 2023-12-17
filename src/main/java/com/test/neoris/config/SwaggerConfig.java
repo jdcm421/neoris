@@ -1,41 +1,61 @@
 package com.test.neoris.config;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.servers.Server;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.ApiKey;
+import springfox.documentation.service.AuthorizationScope;
+import springfox.documentation.service.SecurityReference;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
+import springfox.documentation.spring.web.plugins.Docket;
 
 @Configuration
-public class SwaggerConfig {
+public class SwaggerConfig implements WebMvcConfigurer {
 
-    @Value("${neoris.openapi.dev-url}")
-    private String devUrl;
+   @Bean
+    public Docket api(){
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .securityContexts(Arrays.asList(securityContext()))
+                .securitySchemes(Arrays.asList(apiKey()))
+                .select()
+                .apis(RequestHandlerSelectors.any())
+                .paths(PathSelectors.any())
+                .build();
+    }
+    
+    private ApiKey apiKey(){
+        return new ApiKey("JWT", "Authorization", "header");
+    }
 
-    @Bean
-    public OpenAPI myOpenAPI() {
-        Server devServer = new Server();
-        devServer.setUrl(devUrl);
-        devServer.setDescription("Server URL in Development environment");
+    private SecurityContext securityContext(){
+        return SecurityContext.builder().securityReferences(defaultAuth()).build();
+    }
 
-        Contact contact = new Contact();
-        contact.setEmail("juandiego12@gmail.com");
-        contact.setName("Juan Deigo Caceres");
-        contact.setUrl("https://www.linkedin.com/in/juan-diego-caceres-munares-29660039/");
-
-        License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
-
-        Info info = new Info()
-                .title("Test Neoris API")
-                .version("1.0")
-                .contact(contact)
-                .description("This API exposes endpoints to manage tutorials.").termsOfService("https://www.linkedin.com/in/juan-diego-caceres-munares-29660039/")
-                .license(mitLicense);
-
-        return new OpenAPI().info(info).servers(List.of(devServer));
+    private List<SecurityReference> defaultAuth(){
+        AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
+        AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
+        authorizationScopes[0] = authorizationScope;
+        return Arrays.asList(new SecurityReference("JWT", authorizationScopes));
+    }
+                
+    private ApiInfo apiInfo(){
+        return new ApiInfo(
+                "Api Rest",
+                "Descripción",
+                "2.0",
+                "Términos y Condiciones",
+                new springfox.documentation.service.Contact("Juan Diego", "", "jdcaceres12@outlook.com"),
+                "Licencia",
+                "www.licencia.com",
+                Collections.emptyList()
+        );
     }
 }

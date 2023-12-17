@@ -1,15 +1,16 @@
 package com.test.neoris.entity;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;
 import java.util.List;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -47,14 +48,18 @@ public class Usuario {
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP")
     @Temporal(TemporalType.TIMESTAMP)
     @CreationTimestamp
+    @JsonProperty(value = "created")
     private Date createdAt;
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     @Temporal(TemporalType.TIMESTAMP)
     @UpdateTimestamp
+    @JsonProperty(value = "modified")
     private Date updatedAt;
     
     @Column(name = "last_login", columnDefinition = "TIMESTAMP")
     @Temporal(TemporalType.TIMESTAMP)
+    @JsonProperty(value = "lastlogin")
+    @CreationTimestamp
     private Date lastLogin;
 }
