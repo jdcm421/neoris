@@ -7,3 +7,4 @@ mvn clean package
 # generar el compilado
 mvnw spring-boot:run
 # Visualizar swagger
+http://localhost:8080/neoris/swagger-ui/#/
