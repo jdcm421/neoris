@@ -1,12 +1,12 @@
 package com.test.neoris.controller.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.util.Date;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class UsuarioResponse {
 
     private String id;
@@ -18,5 +18,6 @@ public class UsuarioResponse {
     private String lastlogin;
 
     private String token;
+    
     private boolean isactive;
 }
