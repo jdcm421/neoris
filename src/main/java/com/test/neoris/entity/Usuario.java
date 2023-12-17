@@ -1,5 +1,6 @@
 package com.test.neoris.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;
 import java.util.List;
@@ -36,7 +37,7 @@ public class Usuario {
     @Column(name = "password", length = 200)
     private String password;
     
-    @Column(name = "token", length = 200)
+    @Column(name = "token", length = 255)
     private String token;
     
     @Column(name = "isactive", length = 200)
@@ -49,17 +50,20 @@ public class Usuario {
     @Temporal(TemporalType.TIMESTAMP)
     @CreationTimestamp
     @JsonProperty(value = "created")
+    @JsonFormat(pattern="yyyy-MM-dd hh:mm:ss", timezone = "America/Lima")
     private Date createdAt;
 
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     @Temporal(TemporalType.TIMESTAMP)
     @UpdateTimestamp
     @JsonProperty(value = "modified")
+    @JsonFormat(pattern="yyyy-MM-dd hh:mm:ss", timezone = "America/Lima")
     private Date updatedAt;
     
     @Column(name = "last_login", columnDefinition = "TIMESTAMP")
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty(value = "lastlogin")
     @CreationTimestamp
+    @JsonFormat(pattern="yyyy-MM-dd hh:mm:ss", timezone = "America/Lima")
     private Date lastLogin;
 }

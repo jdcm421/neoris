@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 public class Constantes {
 
     public String ERROR = "Error Interno ";
-    public String ERROREMAIL = "Email ya existe";
+    public String ERROREMAIL = "El correo ya registrado";
     public String ERRORNOTAUTHORIZED = "Error en service JWT";
     
 }

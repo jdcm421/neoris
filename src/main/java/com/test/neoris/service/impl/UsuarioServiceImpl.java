@@ -74,22 +74,29 @@ public class UsuarioServiceImpl implements UsuarioService {
                 res.setMensaje(constantes.ERROREMAIL);
                 return new ResponseEntity<>(res, HttpStatus.BAD_REQUEST);
             }
+            
 
             Usuario userEntity = new Usuario();
             List<Telefono> phone = new ArrayList<>();
-
-            userEntity.setId(UUID.randomUUID().toString());
-            userEntity.setNombre(request.getName());
-            userEntity.setEmail(request.getEmail());
-            userEntity.setPassword(encoder.encode(request.getPassword()));
             for (TelefonoRequest tel : request.getPhones()) {
+                ValidatorFactory factorys = Validation.buildDefaultValidatorFactory();
+                Validator validators = factorys.getValidator();
+                Set<ConstraintViolation<TelefonoRequest>> constraintViolationst = validators.validate(tel);
+                if (constraintViolationst.iterator().hasNext()) {
+                    res.setMensaje(constraintViolationst.iterator().next().getMessage());
+                    res.setUsuario(null);
+                    return new ResponseEntity<>(res, HttpStatus.BAD_REQUEST);
+                }
                 Telefono entityphone = new Telefono();
                 entityphone = mapper.convertValue(tel, Telefono.class);
                 entityphone.setUsuario(userEntity);
                 phone.add(entityphone);
             }
+            userEntity.setId(UUID.randomUUID().toString());
+            userEntity.setNombre(request.getName());
+            userEntity.setEmail(request.getEmail());
+            userEntity.setPassword(encoder.encode(request.getPassword()));
             userEntity.setPhones(phone);
-            
             userEntity.setLastLogin(new Date());
             userEntity.setIsactive(true);
             userEntity = repo.save(userEntity);
